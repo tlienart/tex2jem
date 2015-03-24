@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+  "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta name="generator" content="jemdoc, see http://jemdoc.jaboc.net/" />
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<link rel="stylesheet" href="jemdoc.css" type="text/css" />
+<title>Example on how to use tex2jem</title>
+</head>
+<body>
+<div id="layout-content">
+<div id="toptitle">
+<h1>Example on how to use tex2jem</h1>
+</div>
+<h2 id="">1&nbsp;&nbsp; Text format</h2>
+<h3 id="">1.1&nbsp;&nbsp; Basics</h3>
+<ul>
+<li><p>Bold: <b>bold</b></p>
+</li>
+<li><p>Emph: <i>emph</i></p>
+</li>
+<li><p>Underline: <u>underline</u></p>
+</li>
+<li><p>Combo: <b>bold <i>bold emph <u>everything</u></i> blah</b></p>
+</li>
+<li><p>Color: <font color="DarkMagenta">this in color</font> (not embeddable)</p>
+</li>
+</ul>
+<h3 id="">1.2&nbsp;&nbsp; References</h3>
+<p>Hyperreferrences to other sections <a href="#sec:newcom">section on newcoms</a><br />
+Referrences to the outside world: <a href="http://www.mathjax.org" target=&ldquo;blank&rdquo;><b>Link to Mathjax.org</b></a><br />
+Referrences to equations: (this shows that you <i>can</i> write everything in line, it will be handled but it's not nice, if you write everything out nicely it will also work obviously)</p>
+<p style="text-align:center">
+\[
+\begin{eqnarray}
+\mathbb I_3 &amp;:=&amp; \left(\begin{array}{ccc}1&amp;0&amp;0\\0&amp;1&amp;0\\0&amp;0&amp;1 \end{array}\right).\label{eq:def id}
+\end{eqnarray}
+\]
+</p><p>which can then be referred to as \(\eqref{eq:def id}\) follows&hellip;<br /></p>
+<p>Raw jem can be inserted at any point (eg., handy for insite short links)
+this a <b>raw</b> <i>jem</i> block (see also jemdoc &amp; co)</p>
+<h2 id="">2&nbsp;&nbsp; Environments</h2>
+<h3 id="">2.1&nbsp;&nbsp; Highlighted boxes</h3>
+<div class="infoblock">
+<div class="blockcontent">
+<p>This is a highlighted box</p>
+</div></div>
+<h3 id="">2.2&nbsp;&nbsp; Figures</h3>
+<p>At the moment, no option allowed (do all that outside, rule of thumb 340x240)</p>
+<table class="imgtable"><tr><td>
+<img src="_figs/rubber-duck.jpg" alt="" />&nbsp;</td>
+<td align="left"></td></tr></table>
+<h3 id="">2.3&nbsp;&nbsp; Equations</h3>
+<p>Inline <b>small</b> mode: \(4 \ge 3\) is simple inline math<br />
+Inline <b>big</b> mode:   </p>
+<p style="text-align:center">
+\[
+\pi\ge3
+\]
+</p><p><br />
+Inline <b>big</b> mode(2) </p>
+<p style="text-align:center">
+\[
+\pi\ge3
+\]
+</p><p><br />
+Multiline</p>
+<p style="text-align:center">
+\[
+\begin{eqnarray}
+1+1&amp;=&amp;2
+\end{eqnarray}
+\]
+</p><p>Multiline with tag and label</p>
+<p style="text-align:center">
+\[
+\begin{eqnarray}
+\sin^2(x)+\cos^2(x) &amp;=&amp; 1, \qquad \forall x\in\mathbb R \tag{A} \label{eq:A}
+\end{eqnarray}
+\]
+</p><p>which can then be referred by \(\eqref{eq:A}\), easy enough.<br /></p>
+<p>Array of equations:</p>
+<p style="text-align:center">
+\[
+\begin{eqnarray}
+\sin^2(x)+\cos^2(x) - 1 &amp;=&amp; 0\nonumber\\
+    |\exp(i\theta)|-1 &amp;=&amp; 0.
+\end{eqnarray}
+\]
+</p><h2 id="sec:newcom">3&nbsp;&nbsp; Using new commands</h2>
+<p>Cf definition of some of the newcommands at the beginning of the document:</p>
+<ul>
+<li><p>No arg embedded math: the reals \(\mathbb R\) blah</p>
+</li>
+<li><p>One arg embedded href: <a href="http://www.openstreetmap.org" target=&ldquo;blank&rdquo;><b>Link</b>.</a></p>
+</li>
+</ul>
+<div id="footer">
+<div id="footer-text">
+Last revision Tue Mar 24 12:53:19 2015, page generated with <a href="https://github.com/tlienart/tex2jem" target="blank">tex2jem</a>
+</div>
+</div>
+</div>
+<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML-full" type="text/javascript">
+</script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+	  TeX: { equationNumbers: { autoNumber: "AMS" } }
+});
+</script>

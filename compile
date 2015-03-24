@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+# coding=utf-8
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+# FOLDER STRUCTURE ASSUMED
+# 	 > _SOURCE
+# 		<> *.tex, *.jemdoc, ...
+#	 	 > _FIGS
+# 			<> *.png, ...
+# 	<> compile
+# 	<> jemdoc.css
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+from subprocess import check_call
+import glob
+from os import getcwd, makedirs, remove
+from os.path import expanduser, exists
+from shutil import copy
+from sys import argv
+from re import match, sub
+
+from time import time
+
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+# USER ARGUMENTS
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+compilejem = True
+compiletex = False
+texfile = ''
+
+if len(argv)>1:
+	args = argv[1:]
+	while args:
+		arg  = args[0]
+		args = args[1:]
+		if bool(match(r'^-tex',arg)):
+			compiletex = True
+		elif bool(match(r'^-stex',arg)):
+			compilejem = False
+			texfile    = '_source/'+args[0];
+			if not texfile[-4:]=='.tex':
+				texfile = texfile+'.tex'
+			args       = args[1:];
+		elif bool(match(r'^-all',arg)):
+			compiletex = True
+		elif bool(match(r'^-nojem',arg)):
+			compilejem = False
+		else:
+			print 'Ignoring unrecognized arg.: <'+arg+'>'
+
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+# COMPILATION
+# ±±±±±±±±±±±±±±±±±±±±±±±±±±±
+if compiletex:
+	start=time()
+	# LATEX -> JEMDOC
+	for file in glob.glob('_source/*.tex'):
+		check_call('./t2j '+file,shell=True)
+	end=time()
+	print 'TEX to JEM multi file parsing: ', end-start
+if texfile:
+	start=time()
+	check_call('./t2j '+texfile,shell=True)
+	end=time()
+	print 'TEX to JEM single file parsing: ', end-start
+	start=time()
+	check_call('./jemdoc -c jemdoc.conf '+texfile[:-4]+'.jemdoc',shell=True)
+	end=time()
+	print 'JEMDOC+MJX single file compiling: ', end-start
+if compilejem:
+	start=time()
+	# JEMDOC to HTML
+	for file in glob.glob('_source/*.jemdoc'):
+		check_call('./jemdoc -c  jemdoc.conf '+file, shell=True)
+	end=time()
+	print 'JEMDOC+Mathjax parsing: ', end-start
+#
+# Copy things to appropriate directories
+#
+
+# HTML+CSS to dedicated folder (that can be SCPd to PUB_HTML)
+if not exists('_html/'):
+	makedirs('_html/')
+copy('jemdoc.css','_html')
+for file in glob.glob('_source/*.html'):
+	copy(file,'_html')
+	remove(file)
+if not exists('_html/_figs'):
+	makedirs('_html/_figs')
+for file in glob.glob('_source/_figs/*.png'):
+	copy(file,'_html/_figs')
+for file in glob.glob('_source/_figs/*.jpg'):
+	copy(file,'_html/_figs')
+if texfile:
+	check_call('open _html/'+sub('^_source/|.tex$','',texfile)+'.html', shell=True)

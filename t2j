@@ -1,0 +1,380 @@
+#!/usr/bin/env python
+from sys  import argv
+from subprocess import check_call
+from re import search, sub, match, compile
+from os.path import splitext, isfile
+import fileinput
+# ==============================================================================
+STRIPBRACKETS  = compile(r'^\s*\\[a-zA-Z]+\*?{(.*?)}')
+SEARCHSECLABEL = compile(r'^\s*\\(sub)*section{.*?\\label{(.*?)}(.*?)}\s*$')
+NEWCOMONEARG   = compile(r'^\s*\\newcommand{\s*\\([a-zA-Z]+)\s*}\s*\[\s*1\s*\]\s*{([\s\S]*)')
+NEWCOMNOARG    = compile(r'^\s*\\newcommand{\s*\\([a-zA-Z]+)\s*}\s*{([\s\S]*)')
+#
+OUTER          = r'([\s\S]*?)%s([\s\S]*)'
+S2C,S2CO       = OUTER%r'\\%s{(.*?)}', OUTER%r'\\%s{(.*?)}{'
+#
+SRCHENV        = compile(S2C    % 'begin')
+SRCHONEARG     = compile(OUTER  % r'\\([a-zA-Z]+?){')
+INLINEBAL      = compile(OUTER  % r'(?<!\\)}')
+#
+ACTIVEOPEN     = compile(r'(?<!\\){') # need to do this to avoid conflict with math \left \right
+ACTIVECLOSE    = compile(r'(?<!\\)}')
+# ==============================================================================
+sr             = lambda s: s.encode('string-escape')
+sw             = lambda e,l: l.startswith(e)
+strip_brackets = lambda l: search(STRIPBRACKETS,l).group(1)
+srch_seclabel  = lambda l: search(SEARCHSECLABEL,l)
+delta_active   = lambda l: len(ACTIVECLOSE.findall(l))-len(ACTIVEOPEN.findall(l))
+# ==============================================================================
+# pre-post style commands
+cdef_pp={
+    'caption':       '%s',
+    'emph':         '/%s/',
+    'textbf':       '*%s*',
+    'underline':    '_%s_',
+}
+# replacements (done at the end)
+repl_def=[
+    (r'HR0357{(.*?)}',      r'\1]'),           # hyperref
+    (r'HRR0357o(.*?)HRR0357c{(.*?)}',r'{{<a href="H0357\1">\2</a>}}'), # href
+    ('ILM0357',             '$'),              # inline math
+    ('EQR0357o',            '$\\eqref{'),      # eqref open
+    ('EQR0357c',            '}$'),             # ----- close
+    ('SLM0357o',            '\\n\(\n'),        # big math open
+    ('SLM0357c',            '\\n\)\n'),        # -------- close
+    ('MTXB0357',            '\\\\'),           # backslash
+    ('RETL0357',            '\\\\n\n'),        # returnline in math
+    ('\\\\center',          ''),
+    ('\\\\centering',       ''),
+    ('\\\\clearpage',       ''),
+    ('\\\\newpage',         ''),
+    ('\\\\noindent',        ''),
+    ('\\\\maketitle',       ''),
+]
+# environments which appear outside of mathmode (within mathmode, only usual
+# tex environment allowed, not user defined)
+sp_envs=(
+    'align',
+    'enumerate',
+    'eqnarray',
+    'figure',
+    'itemize',
+    'ybox',
+    'lstlisting',
+)
+# starts of line to ignore (the whole line will be ignored)
+st_toignore=(
+    '\\author',
+    '\\date',
+    '\\documentclass', # obsolete, in input, cf t2jPreamble.tex
+    '\\end{document}',
+    '\\input',
+    '\\usepackage',
+)
+# ==============================================================================
+# STARTS_WITH
+#   checks start of line, return rest of line
+def starts_with(expr,l):
+    srch = match(r'^\s*'+expr+r'([\s\S]*)',l)
+    if srch: return srch.group(1)
+    else:    return ''
+# ------------------------------------------------------------------------------
+# X_BLOCK
+#    finds command flag i.e., (stuff)\com[]{}(stuff)
+#    ex:
+#        <arg>    "this is \textbf{blah} some\n"
+#        <out>    "this is *blah* some\n"
+def x_block(l):
+    if not l: return '' # empty string
+    #
+    global wdf_mathmode, nested
+    if _DCOUNTER_ and l and not(l[0]=='%'): print 'Line #',line_cntr,' :: ',sr(l)
+    if not nested:
+        f,l=check_start(l)  # special starts
+        if f: return l
+    nested = True
+    #
+    # INLINE REPLACEMENT
+    # -- rem: for *0357 > final pySED
+    #
+    # > comments
+    l = sub(r'(?<![\\])%.*','',l) # remaining % (ignore rest)
+    # > math
+    l = sub(r'(?<![\\\$])\$(?!\$)','ILM0357',l)     # inline math: $..$
+    l = sub(r'\$\$(.*?(?:\$\$|$))',r'SLM0357o\1',l) # newline big math: $$..$$
+    l = sub(r'\$\$','SLM0357c',l)
+    l = sub(r'\\\[','SLM0357o',l)                   # newline big math: \[..\]
+    l = sub(r'\\\]','SLM0357c',l)
+    # > references
+    l = sub(r'\\eqref{(.+?)}',r'EQR0357o\1EQR0357c',l) # replace eqref
+    l = sub(r'\\href{(.+?)}',r'[\1 HR0357',l)
+    # > things that involve RAW HTML: (don't nest, no options)
+    l = sub(r'\\hyperref\[(.+?)\]',r'HRR0357o\1HRR0357c',l)
+    l = sub(r'\\includegraphics{(.*?)}',r'{}{img_left}{\1}{}\n',l)
+    l = sub(r'\\textcolor{(.*?)}{(.*?)}',r'{{<font color="\1">\2</font>}}',l)
+    # > newlines
+    if not wdf_mathmode: l = sub(r'(?:\\\\|\\newline)\s*\n?','RETL0357',l)
+    #
+    if not '\\' in l: return l
+    #
+    # MULTILINE REPLACEMENTS
+    # -- (environments/commands, careful treatment is diff)
+    #
+    # > environments (outside math only). Eg: itemize, figure, ybox
+    if not wdf_mathmode:
+        srch = search(SRCHENV,l)
+        if srch:
+            pre,ename,post = srch.group(1,2,3)
+            if ename in sp_envs:
+                stack,post = x_multiline_env(post,ename)
+                #
+                retstr = x_block(pre) + apply_env(ename,stack) + x_block(post)
+                return retstr
+    #
+    # > one arg commands (eg textbf, emph, ...)
+    srch = search(SRCHONEARG,l)
+    if srch:
+        pre,cname,post = srch.group(1,2,3)
+        stack,post     = x_multiline_bal(post)
+        #
+        retstr  = pre + apply_com(cname,stack) + post
+        return x_block(retstr)
+    #
+    return l
+# ------------------------------------------------------------------------------
+# X_MULTILINE_BAL
+#   finds closing "}" returns what's before and after (multiline)
+#   (see als,o inline BAL)
+def x_multiline_bal(l):
+    global tf, line_cntr
+    stack,delta,lnxt = '',delta_active(l),l
+    while delta<=0:
+        stack     += lnxt
+        lnxt       = tf.next()
+        line_cntr += 1
+        delta      = delta_active(lnxt)
+    astack,post = x_inline_bal(lnxt)
+    stack      += astack
+    return stack, post
+# ------------------------------------------------------------------------------
+# X_INLINE_BAL
+#     finds closing "}" returns what's before and after.
+#    ex:
+#        "this is \com{blah} text} more stuff"
+#        <out1>:    "this is \com{blah} text"
+#        <out2>:    " more stuff"
+def x_inline_bal(l):
+    stack,rest = '',l
+    while True: # ok only called when will end
+        candidate = search(INLINEBAL,rest)
+        pre, rest = candidate.group(1,2)
+        stack    += pre
+        if not delta_active(stack): return stack, rest
+        else: stack += '}'
+# ------------------------------------------------------------------------------
+# X_MULTILINE_ENV
+#   same as the BAL one but for environment
+def x_multiline_env(l,ename):
+    global tf, line_cntr
+    stack,lnxt = '',l
+    while not lnxt.count('\\end{%s}'%ename):
+        stack     += lnxt
+        lnxt       = tf.next()
+        line_cntr += 1
+    astack,post = search(OUTER%(r'\\end{%s}'%ename),lnxt).group(1,2)
+    stack      += astack
+    return stack,post
+# ------------------------------------------------------------------------------
+# APPLY_COM
+#    when command flag has been found, act accordingly
+#    ex:
+#        <args>    textbf, "this text"
+#        <out>    *this text*
+def apply_com(cname,carg,copts=''):
+    global cdef_pp, wdf_mathmode
+    # > prepost style
+    cdef = cdef_pp.get(cname,'_NOTFOUND_')
+    if cdef=='_NOTFOUND_':
+        retstr = 'MTXB0357'+cname # let it through, but might be undefined
+        return '%s{%s}'%(retstr,carg)
+    else:
+        return cdef%carg
+# ------------------------------------------------------------------------------
+# APPLY_ENV
+#   when env flag has been found, act accordingly
+def apply_env(ename,earg):
+    global wdf_mathmode, nested
+    earg = earg.strip()
+    if ename=='eqnarray':
+        wdf_mathmode = True
+        retstr = '\n\(\n\\begin{eqnarray}\n%s\n\\end{eqnarray}\n\)\n'%x_block(earg)
+        wdf_mathmode = False
+        return retstr
+    elif ename=='align':
+        wdf_mathmode = True
+        retstr = '\n\(\n\\begin{align}\n%s\n\\end{align}\n\)\n'%x_block(earg)
+        wdf_mathmode = False
+        return retstr
+    # split to do line by line
+    elif ename in ['itemize', 'enumerate']:
+        if ename=='itemize': repl = '-'
+        else:                repl = '.'
+        stack  = sub(r'\\item','W0357'+repl,earg)
+        stack  = sub(r'W0357(.*?)W0357',r'W0357\1\nW0357',stack) # inline?
+        stack  = sub(r'\n\s*\n',r'\n',stack) # empty lines?
+        stack  = stack.split('W0357')
+        pstack = ''
+        nested = False # recheck start of lines
+        for l in stack: pstack+=x_block(l)
+        return pstack+'\n'
+    elif ename=='figure':
+        earg = sub(r'^(?:[\s\S]*?)(\\includegraphics|{})',r'\1',earg)
+        nested=False;return '\n~~~\n%s\n~~~\n'  %x_block(earg)
+    # ybox -- keep \n\n in case starts with {{
+    elif ename=='ybox':       nested=False; return '\n~~~\n\n%s\n~~~\n'%x_block(earg)
+    elif ename=='lstlisting': nested=False; return '\n~~~\n{}{jl}\n%s\n~~~'%earg
+# ------------------------------------------------------------------------------
+# X_NEWCOM:
+#     extract a \newcommand line add check if has arguments
+#    otherwise ('simple' newcommand) add to a sed-like string to be
+#    applied at the end to the jemdoc file.
+def x_newcom(l):
+    global cdef_p, cdef_pp, df_outdoc
+    srch = search(NEWCOMONEARG,l)
+    if srch: # definition of a newcommand with one arg
+        com,post     = srch.group(1,2)
+        stack,post   = x_multiline_bal(post)
+        stack        = sub(r'([a-zA-Z])#1',r'\1'+' %s',stack)
+        stack        = sub('#1','%s',stack)
+        cdef_pp[com] = stack
+    else:    # definition of a newcommand with no argument (assuming not >2)
+        srch       = search(NEWCOMNOARG,l)
+        com,post   = srch.group(1,2)
+        stack,post = x_multiline_bal(post)
+        repl_def.append((r'\\%s([^a-zA-Z])'%com,r'%s\1'%sr(stack)))
+    if df_outdoc: return ''     # ignore what's after newcommand outside doc
+    else:         return post
+# ------------------------------------------------------------------------------
+# CHECK_START:
+#   check whether there is a special command at the start of the line and acts
+#   accordingly, sends a flag if has found something.
+#   exc: MUST NOT BE INLINE (if problem see equations in x_block)
+def check_start(l):
+    global toignore, df_outdoc
+    global wdf_itemize, wdf_enumerate, wdf_mathmode
+    global dc_s, dc_ss, dc_sss
+    #
+    if sw('%',l): return True,starts_with('%jem: ',l)
+    elif df_outdoc and search(r'^\s*?\n\s*$',l): return True,''
+    l2 = l.lstrip()
+    if not l2: return True,l
+    else     : l = l2
+    #
+    if l[0]=='\\':
+        for sti in st_toignore:
+            if sw(sti,l): return True,''
+        #
+        swbeg = match(r'\\begin{document}',l)
+        if swbeg:
+            df_outdoc = False;
+            return True,'' # nothing after {document}
+        elif starts_with(r'\\newcommand{',l):
+            rest = x_newcom(l)
+            return False,rest
+        elif starts_with(r'\\title',l):
+            return True,'= %s\n\n'%strip_brackets(l)
+        elif starts_with(r'\\section{',l):
+            dc_s,dc_ss,dc_sss,srch=dc_s+1,0,0,srch_seclabel(l)
+            if srch: return True,'== label:%s: %d{{&nbsp;&nbsp;}} %s\n'%(srch.group(2),dc_s,srch.group(3))
+            else:    return True,'== %d{{&nbsp;&nbsp;}} %s\n'%(dc_s,strip_brackets(l))
+        elif starts_with(r'\\subsection{',l):
+            dc_ss,dc_sss,srch=dc_ss+1,0,srch_seclabel(l)
+            if srch: return True,'=== label:%s: %d.%d{{&nbsp;&nbsp;}} %s\n'%(srch.group(2),dc_s,dc_ss,srch.group(3))
+            else:    return True,'=== %d.%d{{&nbsp;&nbsp;}} %s\n'%(dc_s,dc_ss,strip_brackets(l))
+        elif starts_with(r'\\subsubsection{',l):
+            dc_sss,srch=dc_sss+1,srch_seclabel(l)
+            if srch: return True,'==== label:%s: %d.%d.%d{{&nbsp;&nbsp;}} %s\n'%(srch.group(2),dc_s,dc_ss,dc_sss,srch.group(3))
+            else:    return True,'==== %d.%d.%d{{&nbsp;&nbsp;}} %s\n'%(dc_s,dc_ss,dc_sss,strip_brackets(l))
+        elif starts_with(r'\\section\*{',l):
+            dc_ss,dc_sss=0,0
+            return True,'== %s\n'%strip_brackets(l)
+        elif starts_with(r'\\subsection\*{',l):
+            dc_sss=0
+            return True,'=== %s\n'%strip_brackets(l)
+        elif starts_with(r'\\subsubsection\*{',l):
+            return True,'==== %s\n'%strip_brackets(l)
+        #
+        else: return False, l
+    #
+    else: return False,l
+# ------------------------------------------------------------------------------
+# PYSED:
+#   amounts to a sed written in python
+# ------------------------------------------------------------------------------
+def pysed(file,mrList):
+    for line in fileinput.input(file,inplace=True):
+        for mr in mrList:
+            line=sub(mr[0],mr[1],line)
+        print line, #add comma to avoid additional skipline
+# ------------------------------------------------------------------------------
+# ACTUAL CALL
+# ==============================================================================
+# DOCUMENT FLAGS & COUNTERS
+# > global doc flags/cntr
+df_outdoc     = True   # outside of doc. FALSE when "\begin{document}"
+line_cntr     = 0      # counter to follow parser
+# - within doc flags
+wdf_itemize   = False  # itemize env   (no nesting)
+wdf_enumerate = False  # enumerate env (no nesting)
+wdf_mathmode  = False  # math env      (no nesting)
+# - within doc counters
+dc_s          = 0      # counter for \section
+dc_ss         = 0      # counter for \subsection
+dc_sss        = 0      # counter for \subsubsection
+# - code analysis flags
+_DEBUGGING_   = False  # call with -d (super verbose)
+_DCOUNTER_    = False  # call with -c (line by line)
+# ==============================================================================
+texname = argv[1]
+fname   = splitext(texname)[0]
+jemname = fname+'.jemdoc'
+if len(argv)>1:
+    if '-d' in argv: _DEBUGGING_ = True
+    if '-c' in argv: _DCOUNTER_  = True
+    rargv      = ''.join(argv[2:])
+    comname    = search(r'([\S]*?)\.tex',rargv)
+    flag,cname = False,''
+    if comname:
+        comname = comname.group(1)+'.tex'
+        if isfile(comname):
+            flag,cname = True,comname
+        else:
+            print 'Did not find <%s>'%comname
+    elif isfile('t2jNewCommands.tex'):
+        flag,cname = True,'t2jNewCommands.tex'
+    elif isfile('../t2jNewCommands.tex'):
+        flag,cname = True,'t2jNewCommands.tex'
+    #
+    if flag:
+        # read it (store newcommands) but don't write anything
+        with open(cname,'r') as cf:
+            for l in cf:
+                nested = False
+                x_block(l)
+    else:
+        print 'No loading of additional command file'
+# ==============================================================================
+with open(texname,'r') as tf:
+    with open(jemname,'w') as jf:
+        for l in tf:
+            line_cntr += 1     # for tracking what's happening in the parsing
+            nested     = False # see beginning of x_block
+            try:
+                safe_counter = line_cntr
+                jf.write(x_block(l))
+            except Exception as e: # debug mode: force printing of error
+                print 'FAULTY LINE::(%s): (%s)::%s'%(texname,safe_counter,sr(l))
+                if _DEBUGGING_: jf.write(x_block(l))
+#
+pysed(jemname,repl_def)
+#
