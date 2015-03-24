@@ -1,13 +1,13 @@
 \input{../t2jPreamble}
 
-% newcommands don't have to be here, but cleaner if they are
+% newcommands don't have to be before begin document, but cleaner if they are
 \newcommand{\bcite}[1]{\href{#1}{\textbf{Link}.}}
 \newcommand{\RR}{$\mathbb R$}
 \newcommand{\eqa}[1]{\begin{eqnarray}#1\end{eqnarray}}
 
 \title{Example on how to use tex2jem}
 
-\begin{document}
+\begin{document} 
 \maketitle
 
 \section{Text format}
@@ -20,7 +20,7 @@
     \item Color: \textcolor{DarkMagenta}{this in color} (not embeddable)
 \end{itemize}
 
-\subsection{References}\\
+\subsection{References}
 Hyperreferrences to other sections \hyperref[sec:newcom]{section on newcoms}\\
 Referrences to the outside world: \href{http://www.mathjax.org}{\textbf{Link to Mathjax.org}}\\
 Referrences to equations: (this shows that you \emph{can} write everything in line, it will be handled but it's not nice, if you write everything out nicely it will also work obviously)
@@ -44,10 +44,10 @@ Inline \textbf{big} mode(2) $$\pi\ge3$$\\
 Multiline
 \begin{eqnarray} 1+1&=&2\end{eqnarray}
 Multiline with tag and label
-\eqa{
-  \sin^2(x)+\cos^2(x) &=& 1, \qquad \forall x\in\mathbb R \tag{A} \label{eq:A}
+\begin{align}
+  \sin^2(x)+\cos^2(x) &= 1, \qquad \forall x\in\mathbb R \label{eq:A}\tag{A}
   % some comment
-}
+\end{align}
 which can then be referred by \eqref{eq:A}, easy enough.\\
 
 Array of equations:
