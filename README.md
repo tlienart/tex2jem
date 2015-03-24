@@ -25,15 +25,15 @@ The file `example.tex` aims at demonstrating the kind of acceptable LaTeX docume
 
 Just put your `.tex` files in the `_source/` folder with corresponding images in `_source/_figs` (making sure you're calling the figures via `\includegraphics{_figs/myfig.png}`). Then, you might want to:
 
-1. compile a single `.tex` file (whence the flag `-stex`) file and see how it looks like for which, as above you'd do:
+* compile a single `.tex` file (whence the flag `-stex`) file and see how it looks like for which, as above you'd do:
 ```
 ./compile -stex filename
 ```
-2. compile all `.tex` files in `_source/` for which you'd do:
+* compile all `.tex` files in `_source/` for which you'd do:
 ```
 ./compile -tex
 ```
-3. just recompile the `.html` files (eg. when you just want to update menus, figures, ...)
+* just recompile the `.html` files (eg. when you just want to update menus, figures, ...)
 ```
 ./compile
 ```
