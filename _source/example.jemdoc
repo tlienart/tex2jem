@@ -68,9 +68,10 @@ Multiline
 Multiline with tag and label
 
 \(
-\begin{eqnarray}
-\sin^2(x)+\cos^2(x) &=& 1, \qquad \forall x\in\mathbb R \tag{A} \label{eq:A}
-\end{eqnarray}
+\begin{align}
+\sin^2(x)+\cos^2(x) &= 1, \qquad \forall x\in\mathbb R \label{eq:A}\tag{A}
+  
+\end{align}
 \)
 
 which can then be referred by $\eqref{eq:A}$, easy enough.\n
@@ -90,4 +91,9 @@ Cf definition of some of the newcommands at the beginning of the document:
 - No arg embedded math: the reals $\mathbb R$ blah
     - One arg embedded href: [http://www.openstreetmap.org *Link*.]
 
+
+== 4{{&nbsp;&nbsp;}} Tricks
+Raw html insertion:
+{{<font face="verdana", color="Red">Some text here</font>}}
+and continue here
 

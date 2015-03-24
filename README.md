@@ -64,16 +64,14 @@ Will not work | Comment / way around it
 `newcommand` with more than 1 arg | *might be added*
 font modification | use raw HTML `{{raw html}}` (1)
 nested itemize/enumerate | **will be added**
-textcolor cannot be nested (2) | use raw HTML,
+textcolor cannot be nested (2) | use raw HTML, *might be added*
 hyperref cannot be nested | use raw HTML, *might be added*
 
 (1) for raw HTML insertions, you might want to escape the line from LaTeX but still have Jemdoc looking at it, this is how to do it:
 ```
-Some \textbf{example} text here then
-%jem: {{<font face="verdana">some text here</font>}}
+%jem: {{<font face="verdana", color="Red">Some text here</font>}}
 and continue here
 ```
-note that there will be no spurious newline inserted.
 
 (2) an example of nesting is
 ```
