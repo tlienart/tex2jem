@@ -1,0 +1,106 @@
+= Example on how to use tex2html
+
+
+
+== 1{{&nbsp;&nbsp;}} Text format
+=== 1.1{{&nbsp;&nbsp;}} Basics
+- Bold: *bold*
+    - Emph: /emph/
+    - Underline: _underline_
+    - Combo: *bold /bold emph _everything_/ blah*
+    - Color: {{<font color="DarkMagenta">this in color</font>}} (not embeddable)
+
+
+=== 1.2{{&nbsp;&nbsp;}} References
+Hyperreferrences to other sections {{<a href="H0357sec:newcom">section on newcoms</a>}}\n
+Referrences to the outside world: [http://www.mathjax.org *Link to Mathjax.org*]\n
+Referrences to equations: (this shows that you /can/ write everything in line, it will be handled but it's not nice, if you write everything out nicely it will also work obviously)
+
+\(
+\begin{eqnarray}
+\mathbb I_3 &:=& \left(\begin{array}{ccc}1&0&0\n
+0&1&0\n
+0&0&1 \end{array}\right).\label{eq:def id}
+\end{eqnarray}
+\)
+
+which can then be referred to as $\eqref{eq:def id}$ follows...\n
+
+Raw jem can be inserted at any point (eg., handy for insite short links)
+this a *raw* /jem/ block (see also jemdoc & co)
+== 2{{&nbsp;&nbsp;}} Environments
+=== 2.1{{&nbsp;&nbsp;}} Highlighted boxes
+
+~~~
+
+This is a highlighted box
+~~~
+
+
+=== 2.2{{&nbsp;&nbsp;}} Figures
+At the moment, no option allowed (do all that outside, rule of thumb 340x240)
+
+~~~
+{}{img_left}{_figs/vinteractions.png}{}
+~~~
+
+
+=== 2.3{{&nbsp;&nbsp;}} Equations
+Inline *small* mode: $4 \ge 3$ is simple inline math\n
+Inline *big* mode:   
+\(
+\pi\ge3
+\)
+\n
+Inline *big* mode(2) 
+\(
+\pi\ge3
+\)
+\n
+Multiline
+
+\(
+\begin{eqnarray}
+1+1&=&2
+\end{eqnarray}
+\)
+
+Multiline with tag and label
+
+\(
+\begin{eqnarray}
+\sin^2(x)+\cos^2(x) &=& 1, \qquad \forall x\in\mathbb R \tag{A} \label{eq:A}
+\end{eqnarray}
+\)
+
+which can then be referred by $\eqref{eq:A}$, easy enough.\n
+
+Array of equations:
+
+\(
+\begin{eqnarray}
+\sin^2(x)+\cos^2(x) - 1 &=& 0\nonumber\\
+    |\exp(i\theta)|-1 &=& 0.
+\end{eqnarray}
+\)
+
+
+== label:sec:newcom: 3{{&nbsp;&nbsp;}} Using new commands
+Cf definition of some of the newcommands at the beginning of the document:
+- No arg embedded math: the reals $\mathbb R$ blah
+    - One arg embedded href: [http://www.openstreetmap.org *Link*.]
+
+
+== 4{{&nbsp;&nbsp;}} Defensive programming
+Empty math: 
+\(
+ 
+\)
+ or $ $ or 
+\(
+\begin{eqnarray}
+
+\end{eqnarray}
+\)
+
+

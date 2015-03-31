@@ -12,6 +12,10 @@ This is an hacky extension of Jemdoc+Mathjax.
 
 The aim is to go from a reasonably simple `.tex` file to a corresponding `.html` with as little added work from the user as possible (hopefully *none*). I use this quite a lot to write notes on ([my website](http://www.stats.ox.ac.uk/~lienart)).
 
+## What you need
+
+- A working version of `Python 2.x` (Tested on `2.7.6`)
+
 ## Setup
 ### Quick example
 

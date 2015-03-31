@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from sys  import argv
-from subprocess import check_call
 from re import search, sub, match, compile
 from os.path import splitext, isfile
 import fileinput
@@ -35,7 +34,7 @@ cdef_pp={
 }
 # replacements (done at the end)
 repl_def=[
-    (r'HR0357{(.*?)}',      r'\1]'),           # hyperref
+    (r'HR0357{(.*?)}',      r'\1SBR0357c'),    # hyperref
     (r'HRR0357o(.*?)HRR0357c{(.*?)}',r'{{<a href="H0357\1">\2</a>}}'), # href
     ('ILM0357',             '$'),              # inline math
     ('EQR0357o',            '$\\eqref{'),      # eqref open
@@ -44,6 +43,8 @@ repl_def=[
     ('SLM0357c',            '\\n\)\n'),        # -------- close
     ('MTXB0357',            '\\\\'),           # backslash
     ('RETL0357',            '\\\\n\n'),        # returnline in math
+    ('SBR0357o',            '['),
+    ('SBR0357c',            ']'),
     ('\\\\center',          ''),
     ('\\\\centering',       ''),
     ('\\\\clearpage',       ''),
@@ -107,7 +108,7 @@ def x_block(l):
     l = sub(r'\\\]','SLM0357c',l)
     # > references
     l = sub(r'\\eqref{(.+?)}',r'EQR0357o\1EQR0357c',l) # replace eqref
-    l = sub(r'\\href{(.+?)}',r'[\1 HR0357',l)
+    l = sub(r'\\href{(.+?)}',r'SBR0357o\1 HR0357',l)
     # > things that involve RAW HTML: (don't nest, no options)
     l = sub(r'\\hyperref\[(.+?)\]',r'HRR0357o\1HRR0357c',l)
     l = sub(r'\\includegraphics{(.*?)}',r'{}{img_left}{\1}{}\n',l)
