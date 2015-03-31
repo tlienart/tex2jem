@@ -1,5 +1,9 @@
 # tex2jem
 
+## Warning
+
+This project is still under infrequent development.
+
 ## What this is about
 
 This is an hacky extension of Jemdoc+Mathjax.
