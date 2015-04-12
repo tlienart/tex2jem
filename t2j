@@ -3,7 +3,7 @@ from sys  import argv
 from re import search, sub, match, compile
 from os.path import splitext, isfile
 import fileinput
-# ==============================================================================
+# =============================================================================
 STRIPBRACKETS  = compile(r'^\s*\\[a-zA-Z]+\*?{(.*?)}')
 SEARCHSECLABEL = compile(r'^\s*\\(sub)*section{.*?\\label{(.*?)}(.*?)}\s*$')
 NEWCOMONEARG   = compile(r'^\s*\\newcommand{\s*\\([a-zA-Z]+)\s*}\s*\[\s*1\s*\]\s*{([\s\S]*)')
@@ -18,13 +18,13 @@ INLINEBAL      = compile(OUTER  % r'(?<!\\)}')
 #
 ACTIVEOPEN     = compile(r'(?<!\\){') # need to do this to avoid conflict with math \left \right
 ACTIVECLOSE    = compile(r'(?<!\\)}')
-# ==============================================================================
+# =============================================================================
 sr             = lambda s: s.encode('string-escape')
 sw             = lambda e,l: l.startswith(e)
 strip_brackets = lambda l: search(STRIPBRACKETS,l).group(1)
 srch_seclabel  = lambda l: search(SEARCHSECLABEL,l)
 delta_active   = lambda l: len(ACTIVECLOSE.findall(l))-len(ACTIVEOPEN.findall(l))
-# ==============================================================================
+# =============================================================================
 # pre-post style commands
 cdef_pp={
     'caption':       '%s',
@@ -72,14 +72,14 @@ st_toignore=(
     '\\input',
     '\\usepackage',
 )
-# ==============================================================================
+# =============================================================================
 # STARTS_WITH
 #   checks start of line, return rest of line
 def starts_with(expr,l):
     srch = match(r'^\s*'+expr+r'([\s\S]*)',l)
     if srch: return srch.group(1)
     else:    return ''
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # X_BLOCK
 #    finds command flag i.e., (stuff)\com[]{}(stuff)
 #    ex:
@@ -142,7 +142,7 @@ def x_block(l):
         return x_block(retstr)
     #
     return l
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # X_MULTILINE_BAL
 #   finds closing "}" returns what's before and after (multiline)
 #   (see als,o inline BAL)
@@ -157,7 +157,7 @@ def x_multiline_bal(l):
     astack,post = x_inline_bal(lnxt)
     stack      += astack
     return stack, post
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # X_INLINE_BAL
 #     finds closing "}" returns what's before and after.
 #    ex:
@@ -185,7 +185,7 @@ def x_multiline_env(l,ename):
     astack,post = search(OUTER%(r'\\end{%s}'%ename),lnxt).group(1,2)
     stack      += astack
     return stack,post
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # APPLY_COM
 #    when command flag has been found, act accordingly
 #    ex:
@@ -200,7 +200,7 @@ def apply_com(cname,carg,copts=''):
         return '%s{%s}'%(retstr,carg)
     else:
         return cdef%carg
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # APPLY_ENV
 #   when env flag has been found, act accordingly
 def apply_env(ename,earg):
@@ -234,7 +234,7 @@ def apply_env(ename,earg):
     # ybox -- keep \n\n in case starts with {{
     elif ename=='ybox':       nested=False; return '\n~~~\n\n%s\n~~~\n'%x_block(earg)
     elif ename=='lstlisting': nested=False; return '\n~~~\n{}{jl}\n%s\n~~~'%earg
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # X_NEWCOM:
 #     extract a \newcommand line add check if has arguments
 #    otherwise ('simple' newcommand) add to a sed-like string to be
@@ -255,7 +255,7 @@ def x_newcom(l):
         repl_def.append((r'\\%s([^a-zA-Z])'%com,r'%s\1'%sr(stack)))
     if df_outdoc: return ''     # ignore what's after newcommand outside doc
     else:         return post
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # CHECK_START:
 #   check whether there is a special command at the start of the line and acts
 #   accordingly, sends a flag if has found something.
@@ -308,18 +308,18 @@ def check_start(l):
         else: return False, l
     #
     else: return False,l
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # PYSED:
 #   amounts to a sed written in python
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 def pysed(file,mrList):
     for line in fileinput.input(file,inplace=True):
         for mr in mrList:
             line=sub(mr[0],mr[1],line)
         print line, #add comma to avoid additional skipline
-# ------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # ACTUAL CALL
-# ==============================================================================
+# =============================================================================
 # DOCUMENT FLAGS & COUNTERS
 # > global doc flags/cntr
 df_outdoc     = True   # outside of doc. FALSE when "\begin{document}"
@@ -335,7 +335,7 @@ dc_sss        = 0      # counter for \subsubsection
 # - code analysis flags
 _DEBUGGING_   = False  # call with -d (super verbose)
 _DCOUNTER_    = False  # call with -c (line by line)
-# ==============================================================================
+# =============================================================================
 texname = argv[1]
 fname   = splitext(texname)[0]
 jemname = fname+'.jemdoc'
@@ -364,7 +364,7 @@ if len(argv)>1:
                 x_block(l)
     else:
         print 'No loading of additional command file'
-# ==============================================================================
+# =============================================================================
 with open(texname,'r') as tf:
     with open(jemname,'w') as jf:
         for l in tf:
