@@ -2,7 +2,7 @@
 
 ## Warning
 
-This project is still under infrequent development.
+This project is still under infrequent development but can be considered reasonably stable.
 
 ## What this is about
 
