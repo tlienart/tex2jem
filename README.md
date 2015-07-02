@@ -91,4 +91,4 @@ and continue here
 
 If you have a look at `t2j`, you'll see some (messy) python and a lot of Regex, I have good friends from CompSci who've essentially told me that this was evil, that it was much cleaner to define a grammar etc. etc. Yeah yeah, well my aim was not to revolutionize the world, I just wanted a quick hack which I ended up using a lot and thought could be helpful to others.
 
-If you're into nice code translaters written by people who actually know what they're doing, I would recommend having a look at the incredible **Pandoc** written by John Macfarlane ([link](http://johnmacfarlane.net/pandoc/)) in Haskell (!).
+If you're into nice code translators written by people who actually know what they're doing, I would recommend having a look at the very impressive **Pandoc** written by John Macfarlane ([link](http://johnmacfarlane.net/pandoc/)) in Haskell (!).
